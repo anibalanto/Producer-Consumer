@@ -8,7 +8,7 @@
 static const int nproducers = 1;
 static const int nconsumers = 10;
 
-static transporter<Frame, CompFrameByNObjets> transports[nproducers];
+static transporter<Frame> transports[nproducers];
 
 
 std::random_device rd;
@@ -27,7 +27,7 @@ static Frame get_frame()
 	return Frame(++id, dist_number_objects(mt));
 }
 
-void producer1(std::unique_ptr<producer<Frame, CompFrameByNObjets>> access)
+void producer1(std::unique_ptr<producer<Frame>> access)
 {
 	thread_log("producer: Beginning");
 	auto nproducts = dist_number_products(mt);
@@ -44,7 +44,7 @@ void producer1(std::unique_ptr<producer<Frame, CompFrameByNObjets>> access)
 	thread_log("producer: Finalice");
 }
 
-void consumer1(std::unique_ptr<consumer<Frame, CompFrameByNObjets>> access)
+void consumer1(std::unique_ptr<consumer<Frame>> access)
 {
 	thread_log("consumer : Beginning ");
 	Frame frame;

@@ -5,19 +5,26 @@
 #include <mutex>
 #include <condition_variable>
 
-template<typename T, typename C> class producer;
-template<typename T, typename C> class consumer;
+template<typename T> class producer;
+template<typename T> class consumer;
 
-template<typename T, typename C>
+
+/*template<typename Container>
+struct transporter_priority
+{
+		using type = less<typename Container::value_type> ;
+}*/
+
+template<typename T>
 class transporter
 {
 	std::mutex mx;
 	std::condition_variable do_pull;
-	std::priority_queue<T, std::vector<T>, C> q;
+	std::priority_queue<T> q;
 	bool finished = false;
 
-	friend producer<T, C>;
-	friend consumer<T, C>;
+	friend producer<T>;
+	friend consumer<T>;
 
 	inline void push(T product)
 	{
@@ -53,37 +60,37 @@ class transporter
 	}
 
 public:
-	std::unique_ptr<producer<T, C>> producer_access();
-	std::unique_ptr<consumer<T, C>> consumer_access();
+	std::unique_ptr<producer<T>> producer_access();
+	std::unique_ptr<consumer<T>> consumer_access();
 };
 
-template<typename T, typename C>
+template<typename T>
 class producer
 {
-	transporter<T, C> *transp;
+	transporter<T> *transp;
 public:
-	producer(transporter<T, C> *t) : transp{ t } {}
+	producer(transporter<T> *t) : transp{ t } {}
 	inline ~producer() { transp->finish(); }
 	inline void push(T product) { transp->push(product); }
 };
 
-template<typename T, typename C>
+template<typename T>
 class consumer
 {
-	transporter<T, C> *transp;
+	transporter<T> *transp;
 public:
-	consumer(transporter<T, C> *t) : transp{ t } {}
+	consumer(transporter<T> *t) : transp{ t } {}
 	inline bool pull_inside(T& product) { return transp->pull_inside(product); }
 };
 
-template<typename T, typename C>
-std::unique_ptr<producer<T, C>> transporter<T, C>::producer_access()	
+template<typename T>
+std::unique_ptr<producer<T>> transporter<T>::producer_access()	
 {
-	return std::make_unique<producer<T, C>>(this);
+	return std::make_unique<producer<T>>(this);
 }
 
-template<typename T, typename C>
-std::unique_ptr<consumer<T, C>> transporter<T, C>::consumer_access()
+template<typename T>
+std::unique_ptr<consumer<T>> transporter<T>::consumer_access()
 {
-	return std::make_unique<consumer<T, C>>(this);
+	return std::make_unique<consumer<T>>(this);
 }
