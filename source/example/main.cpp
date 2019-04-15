@@ -8,7 +8,7 @@
 static const int nproducers = 1;
 static const int nconsumers = 10;
 
-static transporter<Frame> transports[nproducers];
+static transporter<Frame> transports[nproducers] = {{30}};
 
 
 std::random_device rd;
@@ -48,7 +48,7 @@ void consumer1(std::unique_ptr<consumer<Frame>> access)
 {
 	thread_log("consumer : Beginning ");
 	Frame frame;
-	while (access->pull_inside(frame))
+	while (access->extract_in(frame))
 	{
 		thread_log("consumed" /*<< transp->get_id()*/ << ": " << frame.id << " - nobjs: " << frame.n_objects);
 		std::this_thread::sleep_for(std::chrono::milliseconds(dist_time_consume(mt)));

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <thread>
-#include <queue>
+#include <set>
 #include <mutex>
 #include <condition_variable>
 
@@ -20,31 +20,51 @@ class transporter
 {
 	std::mutex mx;
 	std::condition_variable do_pull;
-	std::priority_queue<T> q;
+	std::multiset<T> s;
 	bool finished = false;
+	unsigned int limit;
 
 	friend producer<T>;
 	friend consumer<T>;
 
+public:
+	transporter(unsigned int lim) : limit(lim) {}
+
+protected:
 	inline void push(T product)
 	{
 		{
 			std::lock_guard<std::mutex> lk(mx);
-			q.push(product);
+			s.insert(product);
+			std::cout << "transporter::limit(" << limit << ")\n";
+			std::cout << "transporter::added: " << product;
+			if (limit > 0)
+			{
+				limit--;
+			}
+			else
+			{
+				auto last_product = std::prev(s.end());
+				std::cout << "transporter::removed: " << *last_product;
+				s.erase(last_product);
+			}
 		}
 		do_pull.notify_one();
 	}
-	inline bool pull_inside(T& product)
+	inline bool extract_in(T& product)
 	{
 		bool pulled = false;
 		std::unique_lock<std::mutex> lk(mx);
 		if (!finished)
-			do_pull.wait(lk, [this]() -> bool {return !q.empty() || finished; });
-		if (!q.empty())
+			do_pull.wait(lk, [this]() -> bool {return !s.empty() || finished; });
+		if (!s.empty())
 		{
-			product = q.top();
-			q.pop();
+			product = *s.begin();
+			s.erase(s.begin());
 			pulled = true;
+			limit++;
+			std::cout << "transporter::limit(" << limit << ")\n";
+			std::cout << "transporter::extracted: " << product;
 		}
 		lk.unlock();
 		do_pull.notify_one();
@@ -80,11 +100,11 @@ class consumer
 	transporter<T> *transp;
 public:
 	consumer(transporter<T> *t) : transp{ t } {}
-	inline bool pull_inside(T& product) { return transp->pull_inside(product); }
+	inline bool extract_in(T& product) { return transp->extract_in(product); }
 };
 
 template<typename T>
-std::unique_ptr<producer<T>> transporter<T>::producer_access()	
+std::unique_ptr<producer<T>> transporter<T>::producer_access()
 {
 	return std::make_unique<producer<T>>(this);
 }
