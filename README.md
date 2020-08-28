@@ -1,2 +1,2 @@
-# Producer-Consumer
+# Producer Consumer
 Multithread producer consumer
